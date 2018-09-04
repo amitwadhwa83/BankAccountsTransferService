@@ -1,4 +1,4 @@
-# Transfer Service
+Transfer service
 Solution design and Technology choices
 •	Since I wanted to explore more on spring-boot so I have chooses it as a base framework for solution.
 •	For interactions I used REST web services since it’s easy to configure and develop.
@@ -14,10 +14,12 @@ Limitations:
 •	Same is the case of exceptions like validation/business/generic i.e. no robust catching(at interceptors level too) reporting and  resolution  
 
 Deployment instructions:
-•	For using in an IDE it’s simple to download the code base and import it as maven project. Clean, build, resolve dependencies and launch as java application with StartApplication.java as starting point
-•	For deployment on a unix box use following command (make sure to have java8 on path)
+•	For using in an IDE it’s simple to download the code base from https://github.com/amitwadhwa83/Transfer-Service and import it as maven project. Clean, build, resolve dependencies and launch as java application with StartApplication.java as starting point
+•	For deployment on a unix box you need to generate the jar using maven build. Use targets ‘clean package’ as goals and the jar(TransferService-18.1.0.0.jar) will be generated under \target\ directory 
+Use following command (make sure to have java8 on path) to run on unix.
 java -jar "TransferService-18.1.0.0.jar"
-Where jar TransferService-18.1.0.0.jar is located under \target\ directory
+
+Note: jar TransferService-18.1.0.0.jar will gets generated under \target\ directory
 
 Generic instructions: 
 •	I have included a ‘SampleRequest.txt’ file with sample requests for invoking available services
