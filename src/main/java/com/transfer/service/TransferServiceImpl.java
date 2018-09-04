@@ -54,10 +54,11 @@ public class TransferServiceImpl implements TransferService {
 	try {
 	    LOGGER.info("Initiating the transfer for amount {} from account {} to account {}", amount,
 		    sourceAccountName, destAccountName);
+
+	    lock.lock();
 	    // Validate values
 	    validateTransfer(accountService, amount, sourceAccountName, destAccountName);
 
-	    lock.lock();
 	    // Validate source account balance
 	    Account sourceAcct = accountService.findOne(sourceAccountName);
 	    if (sourceAcct.getBalance().doubleValue() < amount.doubleValue()) {
