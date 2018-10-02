@@ -3,12 +3,11 @@ package com.transfer.service;
 import java.math.BigDecimal;
 
 import com.transfer.domain.Transfer;
+import com.transfer.exception.GenericException;
 
 public interface TransferService {
 
-    Transfer findOne(long id);
+    public long doTransfer(String fromAccount, String toAcct, BigDecimal amount) throws GenericException;
 
-    Iterable<Transfer> findAll();
-
-    long doTransfer(String sourceAccountName,String destAccountName,BigDecimal amount);
+    public Iterable<Transfer> findTransfers();
 }

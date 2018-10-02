@@ -25,6 +25,9 @@ import org.mockito.Mock;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.transfer.domain.Account;
+import com.transfer.exception.GenericException;
+import com.transfer.exception.InvalidAccountException;
+import com.transfer.exception.InvalidAmountException;
 import com.transfer.repository.AccountRepository;
 
 @RunWith(SpringRunner.class)
@@ -43,69 +46,14 @@ public class AccountServiceImplTest {
     private static final Account EMPTY_ACCOUNT = new Account();
     private static final String EMPTY_ACCOUNT_NAME = "";
 
-    @Test(expected = RuntimeException.class)
-    public final void testFindOneFailsforValidationCheckEmpty() {
-	// GIVEN
-
-	// WHEN
-	service.findOne(EMPTY_ACCOUNT_NAME);
-
-	// THEN
-	// Expected exception
-    }
-
     @Test
-    public final void testFindOneReturnsEmpty() {
-	// GIVEN
-	String accountName = randomAlphanumeric(10);
-	when(accountRepository.findById(any(String.class))).thenReturn(Optional.of(EMPTY_ACCOUNT));
-
-	// WHEN
-	Account response = service.findOne(accountName);
-
-	// THEN
-	// Expected invocations
-	verify(accountRepository, times(1)).findById(eq(accountName));
-	// Assertions
-	assertThat(EMPTY_ACCOUNT, is(equalTo(response)));
-    }
-
-    @Test
-    public final void testFindOneReturnsExpectedAccount() {
-	// GIVEN
-	String accountName = randomAlphanumeric(10);
-	Account account = anAccount();
-	when(accountRepository.findById(any(String.class))).thenReturn(Optional.of(account));
-
-	// WHEN
-	Account response = service.findOne(accountName);
-
-	// THEN
-	// Expected invocations
-	verify(accountRepository, times(1)).findById(eq(accountName));
-	// Assertions
-	assertThat(account, is(equalTo(response)));
-    }
-
-    @Test(expected = RuntimeException.class)
-    public final void testExistsFailsforValidationCheckEmpty() {
-	// GIVEN
-
-	// WHEN
-	service.exists(EMPTY_ACCOUNT_NAME);
-
-	// THEN
-	// Expected exception
-    }
-
-    @Test
-    public final void testExistsAccountDoesExists() {
+    public final void testAccountExistsIsFalse() throws GenericException {
 	// GIVEN
 	String accountName = randomAlphanumeric(10);
 	when(accountRepository.existsById(any(String.class))).thenReturn(false);
 
 	// WHEN
-	boolean response = service.exists(accountName);
+	boolean response = service.accountExists(accountName);
 
 	// THEN
 	// Expected invocations
@@ -115,13 +63,13 @@ public class AccountServiceImplTest {
     }
 
     @Test
-    public final void testExistsAccountDoesNotExists() {
+    public final void testAccountExistsIsTrue() throws GenericException {
 	// GIVEN
 	String accountName = randomAlphanumeric(10);
 	when(accountRepository.existsById(any(String.class))).thenReturn(true);
 
 	// WHEN
-	boolean response = service.exists(accountName);
+	boolean response = service.accountExists(accountName);
 
 	// THEN
 	// Expected invocations
@@ -130,8 +78,63 @@ public class AccountServiceImplTest {
 	assertThat(true, is(equalTo(response)));
     }
 
-    @Test(expected = RuntimeException.class)
-    public final void testCreateAccountFailsForValidationName() {
+    @Test(expected = InvalidAccountException.class)
+    public final void testAccountExistsFailsforValidationAccountNameEmpty() throws GenericException {
+	// GIVEN
+
+	// WHEN
+	service.accountExists(EMPTY_ACCOUNT_NAME);
+
+	// THEN
+	// Expected exception
+    }
+
+    @Test(expected = InvalidAccountException.class)
+    public final void testFindAccountFailsforValidationAccountNameEmpty() throws GenericException {
+	// GIVEN
+
+	// WHEN
+	service.findAccount(EMPTY_ACCOUNT_NAME);
+
+	// THEN
+	// Expected exception
+    }
+
+    @Test
+    public final void testFindAccountReturnsEmpty() throws GenericException {
+	// GIVEN
+	String accountName = randomAlphanumeric(10);
+	when(accountRepository.findById(any(String.class))).thenReturn(Optional.of(EMPTY_ACCOUNT));
+
+	// WHEN
+	Account response = service.findAccount(accountName);
+
+	// THEN
+	// Expected invocations
+	verify(accountRepository, times(1)).findById(eq(accountName));
+	// Assertions
+	assertThat(EMPTY_ACCOUNT, is(equalTo(response)));
+    }
+
+    @Test
+    public final void testFindAccountReturnsExpectedAccount() throws GenericException {
+	// GIVEN
+	String accountName = randomAlphanumeric(10);
+	Account account = anAccount();
+	when(accountRepository.findById(any(String.class))).thenReturn(Optional.of(account));
+
+	// WHEN
+	Account response = service.findAccount(accountName);
+
+	// THEN
+	// Expected invocations
+	verify(accountRepository, times(1)).findById(eq(accountName));
+	// Assertions
+	assertThat(account, is(equalTo(response)));
+    }
+
+    @Test(expected = InvalidAccountException.class)
+    public final void testCreateAccountFailsForValidationAccountNameEmpty() throws GenericException {
 	// GIVEN
 
 	// WHEN
@@ -141,8 +144,8 @@ public class AccountServiceImplTest {
 	// Expected exception
     }
 
-    @Test(expected = RuntimeException.class)
-    public final void testCreateAccountFailsForValidationNullAmount() {
+    @Test(expected = InvalidAmountException.class)
+    public final void testCreateAccountFailsForValidationNullAmount() throws GenericException {
 	// GIVEN
 	String accountName = randomAlphanumeric(10);
 
@@ -153,8 +156,8 @@ public class AccountServiceImplTest {
 	// Expected exception
     }
 
-    @Test(expected = RuntimeException.class)
-    public final void testCreateAccountFailsForValidationNegativeAmount() {
+    @Test(expected = InvalidAmountException.class)
+    public final void testCreateAccountFailsForValidationNegativeAmount() throws GenericException {
 	// GIVEN
 	String accountName = randomAlphanumeric(10);
 
@@ -166,7 +169,7 @@ public class AccountServiceImplTest {
     }
 
     @Test
-    public final void testCreateAccountSavesAnAccount() {
+    public final void testCreateAccountSavesAnAccount() throws GenericException {
 	// GIVEN
 	String accountName = randomAlphanumeric(10);
 	BigDecimal amount = anAmount();
@@ -185,13 +188,13 @@ public class AccountServiceImplTest {
     }
 
     @Test
-    public final void testFindAll() {
+    public final void testFindAccounts() {
 	// GIVEN
 	Iterable<Account> listAccount = anAccountList();
 	when(accountRepository.findAll()).thenReturn(listAccount);
 
 	// WHEN
-	Iterable<Account> response = service.findAll();
+	Iterable<Account> response = service.findAccounts();
 
 	// THEN
 	// Expected invocations

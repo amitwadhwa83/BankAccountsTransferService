@@ -1,11 +1,9 @@
 package com.transfer.service;
 
-import static com.transfer.util.TransferUtil.raiseException;
-import static com.transfer.util.TransferUtil.validateTransfer;
+import static com.transfer.util.TransferUtil.validateAccount;
+import static com.transfer.util.TransferUtil.validateAmount;
 
 import java.math.BigDecimal;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.transaction.Transactional;
 
@@ -16,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import com.transfer.domain.Account;
 import com.transfer.domain.Transfer;
+import com.transfer.exception.GenericException;
+import com.transfer.exception.InsufficientFundsException;
 import com.transfer.repository.TransferRepository;
 
 /**
@@ -34,46 +34,75 @@ public class TransferServiceImpl implements TransferService {
     private TransferRepository transferRepository;
     @Autowired
     private AccountService accountService;
-    private static final Transfer EMPTY_TRANSFER = new Transfer();
-    private Lock lock = new ReentrantLock();
-    private static final String MSG_INSUFCINT_BAL = "Insufficient balance in source account";
 
-    @Override
-    public Transfer findOne(long id) {
-	return transferRepository.findById(id).orElse(EMPTY_TRANSFER);
-    }
+    private static final Object tieLock = new Object();
+    //private static final Object fromLock = new Object();
+    //private static final Object toLock = new Object();
 
-    @Override
-    public Iterable<Transfer> findAll() {
+    public Iterable<Transfer> findTransfers() {
 	return transferRepository.findAll();
     }
 
     @Override
-    public long doTransfer(String sourceAccountName, String destAccountName, BigDecimal amount) {
+    public long doTransfer(final String fromAccountName, final String toAcctName, final BigDecimal amount)
+	    throws GenericException {
 
-	try {
-	    LOGGER.info("Initiating the transfer for amount {} from account {} to account {}", amount,
-		    sourceAccountName, destAccountName);
+	LOGGER.info("Initiating the transfer for amount {} from account {} to account {}", amount, fromAccountName,
+		toAcctName);
 
-	    lock.lock();
-	    // Validate values
-	    validateTransfer(accountService, amount, sourceAccountName, destAccountName);
+	validateTransfer(amount, fromAccountName, toAcctName);
 
-	    // Validate source account balance
-	    Account sourceAcct = accountService.findOne(sourceAccountName);
-	    if (sourceAcct.getBalance().doubleValue() < amount.doubleValue()) {
-		raiseException(MSG_INSUFCINT_BAL, sourceAcct.getName());
+	Account fromAccount = accountService.findAccount(fromAccountName);
+	Account toAccount = accountService.findAccount(toAcctName);
+	
+	class Helper {
+	    public long transfer() throws GenericException {
+		
+		if (fromAccount.getBalance().compareTo(amount) < 0)
+		    throw new InsufficientFundsException();
+		else {
+		    fromAccount.debit(amount);
+		    toAccount.credit(amount);
+		    return transferRepository.save(new Transfer(fromAccount.getName(), toAccount.getName(), amount))
+			    .getId();
+		}
 	    }
-
-	    // Do transfer
-	    Account source = accountService.findOne(sourceAccountName);
-	    Account destination = accountService.findOne(destAccountName);
-	    source.setBalance(source.getBalance().subtract(amount));
-	    destination.setBalance(destination.getBalance().add(amount));
-	    // Record transaction
-	    return transferRepository.save(new Transfer(sourceAccountName, destAccountName, amount)).getId();
-	} finally {
-	    lock.unlock();
 	}
+
+	int fromHash = System.identityHashCode(fromAccount);
+	int toHash = System.identityHashCode(toAccount);
+	if (fromHash < toHash) {
+	    synchronized (fromAccount) {
+		synchronized (toAccount) {
+		    return new Helper().transfer();
+		}
+	    }
+	} else if (fromHash > toHash) {
+	    synchronized (toAccount) {
+		synchronized (fromAccount) {
+		    return new Helper().transfer();
+		}
+	    }
+	} else {
+	    synchronized (tieLock) {
+		synchronized (fromAccount) {
+		    synchronized (toAccount) {
+			return new Helper().transfer();
+		    }
+		}
+	    }
+	}
+    }
+
+    private void validateTransfer(BigDecimal amount, String... accounts) throws GenericException {
+	// Validate account
+	for (String account : accounts) {
+	    validateAccount(account);
+	    if (!accountService.accountExists(account)) {
+		throw new RuntimeException("Account not found" + account);
+	    }
+	}
+	// Validate amount
+	validateAmount(amount);
     }
 }

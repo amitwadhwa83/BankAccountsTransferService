@@ -1,29 +1,28 @@
 
-1. Start (GET): http://localhost:8080
+1. Start : http://localhost:8080
 
-2. Find all transfers (GET): http://localhost:8080/transfers
+2. Find all transfers : http://localhost:8080/transfers
 
-3. Find a transfer (GET): http://localhost:8080/transfer/1
+3. Find a transfer : http://localhost:8080/transfer/1
 
-4. Find all accounts (GET): http://localhost:8080/accounts
+4. Find all accounts : http://localhost:8080/accounts
 
-5. Find an accounts (GET): http://localhost:8080/account/amit
+5. Find an accounts : http://localhost:8080/account/amit
 
-6. Create an accounts (POST): http://localhost:8080/account/create
-Valid values body:
-{"name":"amit","balance":"1000"}
-{"name":"wadhwa","balance":"0"}
-	
-Validation fails:
-{"name":"","balance":"1000"}
-{"name":"$%","balance":"1000"}
-{"name":"test","balance":"1234567.12"}
-{"name":"test","balance":""}
-
-7. Create a transfer (POST): http://localhost:8080/transfer/create
-Valid values body:
-{"sourceAccount":"amit","destAccount":"wadhwa","amount":"500"}
+6. Create an accounts : http://localhost:8080/account/create/amit/1000
+Valid values:
+http://localhost:8080/account/create/amit/1000
+http://localhost:8080/account/create/wadhwa/1000
 
 Validation fails:
-{"sourceAccount":"$%","destAccount":"wadhwa","amount":"500"}
-{"sourceAccount":"amit","destAccount":"wadhwa","amount":"-123456.12"}
+http://localhost:8080/account/create/""/1000
+http://localhost:8080/account/create/test/1234567.12
+http://localhost:8080/account/create/test/-1000
+
+7. Create a transfer : http://localhost:8080/transfer/create/amit/wadhwa/499
+http://localhost:8080/transfer/create/wadhwa/amit/501
+
+Validation fails:
+http://localhost:8080/transfer/create/""/wadhwa/500
+http://localhost:8080/transfer/create/amit/wadhwa/1234567.12
+http://localhost:8080/transfer/create/amit/wadhwa/-123456.12

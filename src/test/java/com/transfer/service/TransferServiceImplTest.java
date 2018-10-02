@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,7 +13,6 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 
 import org.junit.Test;
@@ -27,6 +25,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import com.transfer.domain.Account;
 import com.transfer.domain.Transfer;
+import com.transfer.exception.GenericException;
+import com.transfer.exception.InsufficientFundsException;
+import com.transfer.exception.InvalidAccountException;
+import com.transfer.exception.InvalidAmountException;
 import com.transfer.repository.TransferRepository;
 
 @RunWith(SpringRunner.class)
@@ -45,49 +47,14 @@ public class TransferServiceImplTest {
 
     Random random = new Random();
 
-    private static final Transfer EMPTY_TRANSFER = new Transfer();
-
     @Test
-    public final void testFindOneReturnsEmpty() {
-	// GIVEN
-	long transferId = random.nextLong();
-	when(transferRepository.findById(any(long.class))).thenReturn(Optional.of(EMPTY_TRANSFER));
-
-	// WHEN
-	Transfer response = service.findOne(transferId);
-
-	// THEN
-	// Expected invocations
-	verify(transferRepository, times(1)).findById(eq(transferId));
-	// Assertions
-	assertThat(EMPTY_TRANSFER, is(equalTo(response)));
-    }
-
-    @Test
-    public final void testFindOneReturnsExpectedTransfer() {
-	// GIVEN
-	long transferId = random.nextLong();
-	Transfer transfer = aTransfer();
-	when(transferRepository.findById(any(long.class))).thenReturn(Optional.of(transfer));
-
-	// WHEN
-	Transfer response = service.findOne(transferId);
-
-	// THEN
-	// Expected invocations
-	verify(transferRepository, times(1)).findById(eq(transferId));
-	// Assertions
-	assertThat(transfer, is(equalTo(response)));
-    }
-
-    @Test
-    public final void testFindAll() {
+    public final void testFindTransfers() {
 	// GIVEN
 	Iterable<Transfer> listTransfer = aTransferList();
 	when(transferRepository.findAll()).thenReturn(listTransfer);
 
 	// WHEN
-	Iterable<Transfer> response = service.findAll();
+	Iterable<Transfer> response = service.findTransfers();
 
 	// THEN
 	// Expected invocations
@@ -96,8 +63,8 @@ public class TransferServiceImplTest {
 	assertThat(listTransfer, is(equalTo(response)));
     }
 
-    @Test(expected = RuntimeException.class)
-    public final void testDoTransferFailsForValidationEmptyAccounts() {
+    @Test(expected = InvalidAccountException.class)
+    public final void testDoTransferFailsForValidationEmptyAccounts() throws GenericException {
 	// GIVEN
 	String sourceAccountName = "";
 	String destAccountName = randomAlphanumeric(10);
@@ -111,12 +78,12 @@ public class TransferServiceImplTest {
     }
 
     @Test(expected = RuntimeException.class)
-    public final void testDoTransferFailsForValidationAccountNotExist() {
+    public final void testDoTransferFailsForValidationAccountNotExist() throws GenericException {
 	// GIVEN
 	String sourceAccountName = randomAlphanumeric(10);
 	String destAccountName = randomAlphanumeric(10);
 	BigDecimal amount = new BigDecimal(random.nextInt(1000000));
-	when(accountService.exists(anyString())).thenReturn(false);
+	when(accountService.accountExists(anyString())).thenReturn(false);
 
 	// WHEN
 	service.doTransfer(sourceAccountName, destAccountName, amount);
@@ -125,13 +92,13 @@ public class TransferServiceImplTest {
 	// Expected exception
     }
 
-    @Test(expected = RuntimeException.class)
-    public final void testDoTransferFailsForValidationNullAmount() {
+    @Test(expected = InvalidAmountException.class)
+    public final void testDoTransferFailsForValidationNullAmount() throws GenericException {
 	// GIVEN
 	String sourceAccountName = randomAlphanumeric(10);
 	String destAccountName = randomAlphanumeric(10);
 	BigDecimal amount = null;
-	when(accountService.exists(anyString())).thenReturn(true);
+	when(accountService.accountExists(anyString())).thenReturn(true);
 
 	// WHEN
 	service.doTransfer(sourceAccountName, destAccountName, amount);
@@ -140,13 +107,13 @@ public class TransferServiceImplTest {
 	// Expected exception
     }
 
-    @Test(expected = RuntimeException.class)
-    public final void testDoTransferFailsForValidationNegativeAmount() {
+    @Test(expected = InvalidAmountException.class)
+    public final void testDoTransferFailsForValidationNegativeAmount() throws GenericException {
 	// GIVEN
 	String sourceAccountName = randomAlphanumeric(10);
 	String destAccountName = randomAlphanumeric(10);
 	BigDecimal amount = new BigDecimal(random.nextInt(1000000)).negate();
-	when(accountService.exists(anyString())).thenReturn(true);
+	when(accountService.accountExists(anyString())).thenReturn(true);
 
 	// WHEN
 	service.doTransfer(sourceAccountName, destAccountName, amount);
@@ -155,16 +122,16 @@ public class TransferServiceImplTest {
 	// Expected exception
     }
 
-    @Test(expected = RuntimeException.class)
-    public final void testDoTransferFailsForValidationInsufficientAccountBalance() {
+    @Test(expected = InsufficientFundsException.class)
+    public final void testDoTransferFailsForValidationInsufficientAccountBalance() throws GenericException {
 	// GIVEN
 	Account account = new Account();
 	account.setBalance(new BigDecimal(0));
 	account.setName(randomAlphanumeric(10));
 	String destAccountName = randomAlphanumeric(10);
 	BigDecimal amount = new BigDecimal(random.nextInt(1000000));
-	when(accountService.exists(anyString())).thenReturn(true);
-	when(accountService.findOne(account.getName())).thenReturn(account);
+	when(accountService.accountExists(anyString())).thenReturn(true);
+	when(accountService.findAccount(account.getName())).thenReturn(account);
 
 	// WHEN
 	service.doTransfer(account.getName(), destAccountName, amount);
@@ -174,7 +141,7 @@ public class TransferServiceImplTest {
     }
 
     @Test
-    public final void testDoTransferCreatesATransfer() {
+    public final void testDoTransferCreatesATransfer() throws GenericException {
 	// GIVEN
 	Account sourceAccount = new Account();
 	sourceAccount.setBalance(new BigDecimal(random.nextInt(1000000)));
@@ -186,9 +153,9 @@ public class TransferServiceImplTest {
 
 	BigDecimal amount = new BigDecimal(random.nextInt(100));
 	Transfer transfer = aTransfer();
-	when(accountService.exists(anyString())).thenReturn(true);
-	when(accountService.findOne(sourceAccount.getName())).thenReturn(sourceAccount);
-	when(accountService.findOne(destAccount.getName())).thenReturn(destAccount);
+	when(accountService.accountExists(anyString())).thenReturn(true);
+	when(accountService.findAccount(sourceAccount.getName())).thenReturn(sourceAccount);
+	when(accountService.findAccount(destAccount.getName())).thenReturn(destAccount);
 	when(transferRepository.save(any(Transfer.class))).thenReturn(transfer);
 
 	// WHEN
@@ -196,7 +163,7 @@ public class TransferServiceImplTest {
 
 	// THEN
 	// Expected invocations
-	verify(accountService, times(3)).findOne(anyString());
+	verify(accountService, times(2)).findAccount(anyString());
 	verify(transferRepository, times(1)).save(transferArgCaptor.capture());
 
 	// Assertions

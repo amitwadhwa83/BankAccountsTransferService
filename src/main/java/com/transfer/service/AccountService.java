@@ -3,13 +3,15 @@ package com.transfer.service;
 import java.math.BigDecimal;
 
 import com.transfer.domain.Account;
+import com.transfer.exception.GenericException;
 
 public interface AccountService {
-    Account findOne(String name);
 
-    Iterable<Account> findAll();
+    public String createAccount(String accountName, BigDecimal initialBalance) throws GenericException;
 
-    boolean exists(String name);
+    public Iterable<Account> findAccounts();
 
-    void createAccount(String name, BigDecimal balance);
+    boolean accountExists(String accountName) throws GenericException;
+
+    Account findAccount(String accountName) throws GenericException;
 }

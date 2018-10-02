@@ -53,6 +53,15 @@ public class Account {
 	this.balance = balance;
     }
 
+    public void debit(BigDecimal amount) {
+	this.balance = balance.subtract(amount);
+
+    }
+
+    public void credit(BigDecimal amount) {
+	this.balance = balance.add(amount);
+    }
+
     @Override
     public int hashCode() {
 	final int prime = 31;
@@ -82,10 +91,5 @@ public class Account {
 	} else if (!name.equals(other.name))
 	    return false;
 	return true;
-    }
-
-    @Override
-    public String toString() {
-	return "Account [name=" + name + ", balance=" + balance + "]";
     }
 }
